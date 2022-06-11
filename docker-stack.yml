@@ -1,0 +1,67 @@
+version: "3"
+services:
+
+  db:
+    image: mysql
+    networks:
+      - backend
+    volumes:
+      - data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "rootpassword"
+      MYSQL_DATABASE: "dbtest"
+      MYSQL_USER: "otherUser"
+      MYSQL_PASSWORD: "password"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+  php:
+    image: php:7.2.7-fpm-alpine3.7
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+  phpmy:
+    image: phpmyadmin
+    networks:
+      - backend
+    ports:
+      - '90:80'
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    
+  apache:
+    image: kamil4/apache:apache
+    depends_on:
+      - php
+      - db
+    networks:
+      - frontend
+      - backend
+    ports:
+      - "80:80"
+    volumes:
+      - ./public_html/:/var/www/html/
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+
+networks:
+  frontend:
+  backend:
+volumes:
+    data:
+
